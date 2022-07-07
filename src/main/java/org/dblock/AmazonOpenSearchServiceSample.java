@@ -1,7 +1,10 @@
 package org.dblock;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
+import java.util.zip.GZIPOutputStream;
 
 import software.amazon.awssdk.http.SdkHttpFullRequest;
 import software.amazon.awssdk.http.SdkHttpMethod;
@@ -17,6 +20,7 @@ public final class AmazonOpenSearchServiceSample extends Sample {
         AmazonOpenSearchServiceSample sample = new AmazonOpenSearchServiceSample();
         sample.getInstanceInfo();
         sample.indexDocument();
+        sample.indexDocumentGzip();
     }
 
     private void getInstanceInfo() throws IOException {
@@ -34,6 +38,24 @@ public final class AmazonOpenSearchServiceSample extends Sample {
                 .uri(URI.create(ENDPOINT + "/index_name/type_name/document_id"))
                 .appendHeader("Content-Type", "application/json")
                 .contentStreamProvider(() -> new StringInputStream(payload))
+                .build();
+        makeRequest("es", REGION, request);
+    }
+
+    private void indexDocumentGzip() throws IOException {
+        String payload = "{\"test\": \"val\"}";
+
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        GZIPOutputStream gzipOutputStream = new GZIPOutputStream(outputStream);
+        gzipOutputStream.write(payload.getBytes("UTF-8"));
+        gzipOutputStream.close();
+
+        SdkHttpFullRequest request = SdkHttpFullRequest.builder()
+                .method(SdkHttpMethod.POST)
+                .uri(URI.create(ENDPOINT + "/index_name/type_name/document_id"))
+                .appendHeader("Content-Type", "application/json")
+                .appendHeader("Content-Encoding", "gzip")
+                .contentStreamProvider(() -> new ByteArrayInputStream(outputStream.toByteArray()))
                 .build();
         makeRequest("es", REGION, request);
     }
